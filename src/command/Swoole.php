@@ -14,7 +14,7 @@ use think\console\Input;
 use think\console\input\Argument;
 use think\console\input\Option;
 use think\console\Output;
-use william\swoole\Http as HttpServer;
+use william\swoole\core\Http as HttpServer;
 use Swoole\Process;
 
 class Swoole extends Command

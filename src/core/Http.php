@@ -1,5 +1,5 @@
 <?php
-namespace william\swoole;
+namespace william\swoole\core;
 
 /**
  * Swoole Http Server 命令行服务类

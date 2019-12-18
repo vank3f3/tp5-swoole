@@ -1,5 +1,5 @@
 <?php
-namespace william\swoole;
+namespace william\swoole\core;
 
 /**
  * Swoole应用对象

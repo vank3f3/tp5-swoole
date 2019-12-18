@@ -9,5 +9,5 @@ if (!defined("APP_PATH")){
 
 // 注册命令行指令
 \think\Console::addDefaultCommands([
-    'swoole'        => '\\william\\swoole\\Swoole',
+    'swoole'        => '\\william\\swoole\\command\\Swoole',
 ]);

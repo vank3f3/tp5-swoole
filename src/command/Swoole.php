@@ -5,7 +5,7 @@
  *
  */
 
-namespace william\swoole;
+namespace william\swoole\command;
 
 
 use think\Config;

@@ -1,0 +1,23 @@
+{
+  "name": "chuang/swoole",
+  "description": "chuang/swoole",
+  "license": "Apache-2.0",
+  "minimum-stability": "dev",
+  "authors": [{
+    "name": "Chuang"
+  }],
+  "require": {
+
+  },
+  "extra": {
+
+  },
+  "autoload": {
+    "psr-4": {
+      "william\\swoole\\": "src"
+    },
+    "files": [
+      "src/command.php"
+    ]
+  }
+}

@@ -7,7 +7,7 @@
     "name": "Chuang"
   }],
   "require": {
-
+    "jeremeamia/superclosure": "^2.4"
   },
   "extra": {
 

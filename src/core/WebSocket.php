@@ -1,33 +1,35 @@
 <?php
+/**
+ * 参考think-swoole2.0开发
+ * author:xavier
+ * email:49987958@qq.com
+ */
+
 namespace william\swoole\core;
 
-use Swoole\Http\Server as HttpServer;
-use Swoole\WebSocket\Server as WebSocketServer;
 use Swoole\Table;
 use think\Error;
 use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
 use think\Config;
-use think\Cache;
 use think\Loader;
 
 /**
- * Swoole Http Server 命令行服务类
- * Class Http
+ * Swoole Socket Server 命令行服务类
+ * Class WebServer
  * @package william\swoole
  * Author William
- * Time 2019/12/17 21:35
+ * Time 2019/12/20 14:58
  */
-
-class Http extends Server
+class WebSocket extends Server
 {
     protected $app;
     protected $appPath;
     protected $table;
     protected $monitor;
+    protected $cachetable;
     protected $lastMtime;
     protected static $http;
-	protected $server_type;
     protected $fieldType = [
         'int'    => Table::TYPE_INT,
         'string' => Table::TYPE_STRING,
@@ -41,22 +43,12 @@ class Http extends Server
     ];
 
     /**
-     * 构造函数
+     * 架构函数
+     * @access public
      */
     public function __construct($host, $port, $mode = SWOOLE_PROCESS, $sockType = SWOOLE_SOCK_TCP)
     {
-        $this->server_type = Config::get('swoole.server_type');
-        switch ($this->server_type) {
-            case 'websocket':
-                $this->swoole = new WebSocketServer($host, $port, $mode, SWOOLE_SOCK_TCP);
-                break;
-            default:
-                $this->swoole = new HttpServer($host, $port, $mode, SWOOLE_SOCK_TCP);
-        }
-        if ("process"==Config::get('swoole.queue_type')){
-            $process=new QueueProcess();
-            $process->run($this->swoole);
-        }
+        parent::__construct($host, $port, $mode , $sockType);
     }
 
     public function getSwoole()
@@ -111,22 +103,13 @@ class Http extends Server
                 $this->swoole->on($event, [$this, 'on' . $event]);
             }
         }
-		if ("websocket" == $this->server_type) {
-            foreach ($this->event as $event) {
-                if (method_exists($this, 'Websocketon' . $event)) {
-                    $this->swoole->on($event, [$this, 'Websocketon' . $event]);
-                }
-            }
-        }
     }
 
     /**
      * 此事件在Worker进程/Task进程启动时发生,这里创建的对象可以在进程生命周期内使用
-     * @function onWorkerStart
+     *
      * @param $server
      * @param $worker_id
-     * Author William
-     * Time 2019/12/17 21:29
      */
     public function onWorkerStart($server, $worker_id)
     {
@@ -143,16 +126,13 @@ class Http extends Server
         ]);
 
         $this->initServer($server, $worker_id);
-
+        
     }
 
     /**
      * 自定义初始化Swoole
-     * @function initServer
      * @param $server
      * @param $worker_id
-     * Author William
-     * Time 2019/12/17 21:29
      */
     public function initServer($server, $worker_id)
     {
@@ -173,6 +153,7 @@ class Http extends Server
         return $this->table;
     }
 
+
     /**
      * request回调
      * @param $request
@@ -183,34 +164,6 @@ class Http extends Server
         \think\Hook::listen('swoole_on_request', $request);
         $this->app->swooleHttp($request, $response);
 
-    }
-	
-	/**
-     * Message回调
-     * @param $server
-     * @param $frame
-     */
-    public function WebsocketonMessage($server, $frame)
-    {
-        // 执行应用并响应
-        $this->app->swooleWebSocket($server, $frame);
-    }
-
-    /**
-     * Close
-     */
-    public function WebsocketonClose($server, $fd,$reactorId)
-    {
-        $data=[$server, $fd,$reactorId];
-        $debugclient=Config::get('swoole.debug_client');
-        if ($debugclient){
-            $debug_client_key=Config::get('swoole.debug_client_key');
-            $_fd=Cache::get($debug_client_key);
-            if ($_fd==$fd){
-                Cache::set($debug_client_key,null);
-            }
-        }
-        \think\Hook::listen('swoole_websocket_on_close',$data);
     }
 
     public function onTask(HttpServer $serv, $task_id, $fromWorkerId, $data)
@@ -236,6 +189,20 @@ class Http extends Server
 
     }
 
+    public function onMessage($server, $frame)
+    {
+        $this->app->swooleWebSocket($server, $frame);
+    }
+
+    public function cachetable()
+    {
+        $this->cachetable = new CacheTable();
+    }
+
+    public function getCacheTable()
+    {
+        return $this->cachetable;
+    }
 
     public function onFinish(HttpServer $serv, $task_id, $data)
     {

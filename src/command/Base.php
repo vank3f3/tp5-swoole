@@ -1,9 +1,5 @@
 <?php
 
-/**
- * Swoole启动
- *
- */
 
 namespace william\swoole\command;
 
@@ -14,23 +10,32 @@ use think\console\Input;
 use think\console\input\Argument;
 use think\console\input\Option;
 use think\console\Output;
-use william\swoole\core\Http as HttpServer;
 use Swoole\Process;
 
-class Swoole extends Command
+class Base extends Command
 {
     protected $config = [];
 
+    // 可支持的操作
     protected $option = "start|stop|restart|reload";
 
-    protected function configure()
+    // 可支持的操作数组
+    protected $optionArr = ['start', 'stop', 'reload', 'restart'] ;
+
+    // 定义命令
+    protected function configure($commandName='',$description='')
     {
-        $this->setName('swoole')
+        if( empty($commandName) ){
+            print_r("Please define the command Name !!!!!!!! \n");
+            exit();
+        }
+
+        $this->setName($commandName)
             ->addArgument('action', Argument::OPTIONAL, $this->option, 'start')
             ->addOption('host', 'H', Option::VALUE_OPTIONAL, 'the host of swoole server.', null)
             ->addOption('port', 'p', Option::VALUE_OPTIONAL, 'the port of swoole server.', null)
             ->addOption('daemon', 'd', Option::VALUE_NONE, 'Run the swoole server in daemon mode.')
-            ->setDescription('Swoole HTTP Server for ThinkPHP');
+            ->setDescription($description);
     }
 
     protected function execute(Input $input, Output $output)
@@ -39,26 +44,20 @@ class Swoole extends Command
 
         $this->init();
 
-        if (in_array($action, ['start', 'stop', 'reload', 'restart'])) {
+        if (in_array($action, $this->optionArr)) {
             $this->$action();
         } else {
-            $output->writeln("<error>{$action} 为无效参数方法, 目前仅仅支持 \"start|stop|restart|reload\" .</error>");
+            $output->writeln("<error>{$action} 为无效参数方法, 目前仅仅支持 \"{$this->option}\" .</error>");
         }
     }
 
-    /**
-     * 初始化
-     * @function init
-     * Author William
-     * Time 2019/12/17 22:30
-     */
-    protected function init()
+    protected function init($configFile, $serverType)
     {
         //配置文件需要在application/extra下
-        $this->config = Config::get('swoole');
+        $this->config = Config::get($configFile);
 
         if (empty($this->config['pid_file'])) {
-            $this->config['pid_file'] = APP_PATH . 'swoole.pid';
+            $this->config['pid_file'] = APP_PATH . $serverType.'.pid';
         }
 
         // 避免pid混乱
@@ -70,7 +69,7 @@ class Swoole extends Command
      * @function getHost
      * @return mixed|string
      * Author William
-     * Time 2019/12/17 22:29
+     * Time 2019/12/23 15:43
      */
     protected function getHost()
     {
@@ -88,7 +87,7 @@ class Swoole extends Command
      * @function getPort
      * @return int|mixed
      * Author William
-     * Time 2019/12/17 22:30
+     * Time 2019/12/23 15:43
      */
     protected function getPort()
     {
@@ -104,11 +103,12 @@ class Swoole extends Command
     /**
      * 服务启动
      * @function start
+     * @param $server
      * @return bool
      * Author William
-     * Time 2019/12/17 22:05
+     * Time 2019/12/23 15:44
      */
-    protected function start()
+    protected function start($server)
     {
         $pid = $this->getMasterPid();
         \think\Hook::listen('swoole_before_start', $pid);
@@ -129,7 +129,8 @@ class Swoole extends Command
             $type = SWOOLE_SOCK_TCP | SWOOLE_SSL;
         }
 
-        $swoole = new HttpServer($host, $port, $mode, $type);
+        // 定义Http服务还是socket服务
+        $swoole = new $server($host, $port, $mode, $type);
         $swoole->setHttp($swoole);
         // 开启守护进程模式
         if ($this->input->hasOption('daemon')) {
@@ -170,7 +171,7 @@ class Swoole extends Command
      * @function reload
      * @return bool
      * Author William
-     * Time 2019/12/17 22:11
+     * Time 2019/12/23 15:45
      */
     protected function reload()
     {
@@ -192,7 +193,7 @@ class Swoole extends Command
      * @function stop
      * @return bool
      * Author William
-     * Time 2019/12/17 22:28
+     * Time 2019/12/23 15:45
      */
     protected function stop()
     {
@@ -212,10 +213,10 @@ class Swoole extends Command
     }
 
     /**
-     * 重启服务
+     * 停止服务
      * @function restart
      * Author William
-     * Time 2019/12/17 22:28
+     * Time 2019/12/23 15:45
      */
     protected function restart()
     {
@@ -233,7 +234,7 @@ class Swoole extends Command
      * @function getMasterPid
      * @return int
      * Author William
-     * Time 2019/12/17 21:58
+     * Time 2019/12/23 15:45
      */
     protected function getMasterPid()
     {
@@ -252,7 +253,7 @@ class Swoole extends Command
      * 删除PID文件
      * @function removePid
      * Author William
-     * Time 2019/12/17 22:01
+     * Time 2019/12/23 15:45
      */
     protected function removePid()
     {
@@ -269,7 +270,7 @@ class Swoole extends Command
      * @param $pid
      * @return bool
      * Author William
-     * Time 2019/12/17 22:01
+     * Time 2019/12/23 15:46
      */
     protected function isRunning($pid)
     {
